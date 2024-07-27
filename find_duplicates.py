@@ -134,7 +134,7 @@ def compute_cosine_similarity_in_chunks(tf_idf_matrix, old_tf_idf_matrix, chunk_
     return cos_sim_table
 
 
-def find_duplicates_vs_master(results, cos_sim_table, cutoff_sim=0.99):
+def find_duplicates_vs_master(results, cos_sim_table, old_terms_cased, cutoff_sim=0.99):
     # get similarities vs master into a structure to write a file
     threshold = 0.8  # below this value, (near-)duplicates are very rare
     results_vs_master = []
@@ -147,8 +147,8 @@ def find_duplicates_vs_master(results, cos_sim_table, cutoff_sim=0.99):
                 continue
             terms.insert(2, old_terms_cased[idx_max_score])
             terms.insert(3, str(max_score))
-        else:
-            terms.insert(2, '')
+        elif cutoff_sim != 0.8:
+            terms.insert(2, '')  # assume that some other terms have near duplicates vs master
             terms.insert(3, '')
         new_line = '\t'.join(terms) + '\n'
         results_vs_master.append(new_line)
@@ -265,6 +265,7 @@ if __name__ == '__main__':
         results_vs_master = find_duplicates_vs_master(
             results=results,
             cos_sim_table=cos_sim_table,
+            old_terms_cased=old_terms_cased,
             cutoff_sim=cutoff_sim
             )
         vs_master.append(results_vs_master)
