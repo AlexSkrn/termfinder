@@ -196,30 +196,19 @@ def highlight_all_terms(results_vs_master, terms_contexts_uniq, num_contexts=5):
 
 
 def add_header(results_vs_master):
-    # final_results = []
     results_vs_master = results_vs_master.copy()
     max_length = 0
-    for idx, line in enumerate(results_vs_master):
+    for line in results_vs_master:
         terms = line.strip().split('\t')
-        curr_length = len(terms) + 1
+        curr_length = len(terms)
         if curr_length > max_length:
             max_length = curr_length
-        # new_line = '\t'.join(terms) + '\n'  # why don't use input?
-        # final_results.append(new_line)
-    if max_length == 3:
-        header = 'idx\tterm'
-    else:
-        header = 'idx\tterm\texisting_term_WBTerm\tsim_score'
-    # decide if there are internal duplicates
-    num_inter_duplicates = int((max_length - 5) / 3)
-    # print(f'Num int dup: {num_inter_duplicates}')
-    header_tail = '\tidx2\tinternal_duplicate\tsim_score' * num_inter_duplicates
-    header += header_tail
+    header = 'idx\tterm'
+    if max_length > 2:
+        header += '\texisting_term_WBTerm\tsim_score'
+    if max_length > 5:
+        header += '\tidx2\tinternal_duplicate\tsim_score'
     header += '\n'
-    # print(f'max length: {max_length}')
-    # print(header)
-    # print(len(header.strip().split('\t')))
-    # final_results.insert(0, header)  # why don't use input as is?
     results_vs_master.insert(0, header)
     return results_vs_master
 
