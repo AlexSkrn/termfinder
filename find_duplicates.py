@@ -155,6 +155,38 @@ def find_duplicates_vs_master(results, cos_sim_table, old_terms_cased, cutoff_si
     return results_vs_master
 
 
+def clean_vs_master(vs_master):
+    # remove refs to ghost internal duplicates when
+    # the corresponding duplicates are no longer in the list below 
+    # 'cos they were deleted as 100% duplicates against the master list
+
+    # get lists of indices of terms
+    indices = []
+    for results in vs_master:
+        temp_indices = []
+        for line in results:
+            idx = line.strip().split('\t')[0]  # it's a string
+            temp_indices.append(idx)
+        indices.append(temp_indices)
+
+    # and if ref to internal duplicate is not in the list, remove it
+    updated_vs_master = []
+    for i, results in enumerate(vs_master):
+         temp_results = []
+         for line in results:
+             try:
+                internal_idx = line.strip().split('\t')[4]  # it's a string
+                if internal_idx not in indices[i]:
+                    updated_line = '\t'.join(line.strip().split('\t')[:4]) + '\n'
+                    temp_results.append(updated_line)
+                else:
+                    temp_results.append(line)
+             except IndexError:
+                temp_results.append(line)
+         updated_vs_master.append(temp_results)
+    return updated_vs_master
+
+
 def remove_newlines(context, replace_newline='¶'):
     """Clean context by replacing newlines and tabs."""
     return re.sub(r'[\n\t]', replace_newline, context)
@@ -249,7 +281,7 @@ if __name__ == '__main__':
         cos_sim_table = compute_cosine_similarity_in_chunks(tf_idf_matrix, old_tf_idf_matrix)
         cos_sim_tables.append(cos_sim_table)
 
-    vs_master = []
+    uncleaned_vs_master = []
     for cutoff_sim, cos_sim_table, results in zip([0.99, 0.9, 0.8], cos_sim_tables, internal_duplicates):
         results_vs_master = find_duplicates_vs_master(
             results=results,
@@ -257,7 +289,9 @@ if __name__ == '__main__':
             old_terms_cased=old_terms_cased,
             cutoff_sim=cutoff_sim
             )
-        vs_master.append(results_vs_master)
+        uncleaned_vs_master.append(results_vs_master)
+
+    vs_master = clean_vs_master(uncleaned_vs_master)
 
     vs_master_paths = [
     '03_candidate_duplicates_vs_master_99_cutoff.txt',
