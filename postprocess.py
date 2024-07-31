@@ -27,12 +27,10 @@ def find_substring_contexts(substring, larger_string):
     and promoting overall well-being.'
 
     find_substring_contexts(substring, larger_string)
-    {'term': 'health and safety standards', 
-     'contexts': ['Ensuring compliance with Health and Safety Standards is paramount for any organization. By r', 
-                  'zation. By rigorously adhering to these health and safety standards, companies can prevent workplace injuri',
-                  'loyees. Regular training and updates on health and safety standards help maintain a culture of awareness an'
-                  ]
-    }
+    ['Ensuring compliance with Health and Safety Standards is paramount for any organization. By r',
+      'zation. By rigorously adhering to these health and safety standards, companies can prevent workplace injuri',
+      'loyees. Regular training and updates on health and safety standards help maintain a culture of awareness an'
+      ]
     """
 
     # Create a case insensitive pattern with the substring
@@ -46,12 +44,7 @@ def find_substring_contexts(substring, larger_string):
         if context not in matches:
             matches.append(context)
 
-    # Store the results in a dictionary
-    result = {
-        'term': substring,
-        'contexts': matches,
-        }
-    return result
+    return matches
 
 
 def read_responses(responses_filename):
@@ -63,18 +56,21 @@ def read_responses(responses_filename):
 
 def read_requests(requests_filename):
     texts = []
+    source_names = []
     with open(requests_filename, 'r', encoding='utf-8') as f:
         for line in f:
             prompt_dict = json.loads(line)
             texts.append(prompt_dict['text'])
-    return texts
+            source_names.append(prompt_dict['source'])
+    return texts, source_names
 
 
-def get_unique_terms_context(requests, responses):
-    """Return terms extracted by chat plus their contexts 
-    [{'term': 't1', 'contexts': [matches]}]
-    from the corresponding text segment"""
-    terms_contexts = []
+def get_unique_terms_context(requests, responses, filenames):
+    """Return terms extracted by LLM plus their contexts
+    from the corresponding text segments, plus filenames
+    {'t1': {'contexts': [], 'filename': 'f1}}
+    """
+    terms_contexts_filenames_lst = []
 
     for i in range(len(responses)):
         terms = responses[i].split('\n')
@@ -82,25 +78,31 @@ def get_unique_terms_context(requests, responses):
         terms = [t for t in terms if t]
         terms = list(set(terms))
         terms = [t for t in terms if t.lower() in requests[i].lower()]
-        terms = [find_substring_contexts(t, requests[i]) for t in terms]
-        terms_contexts.append(terms)
+        terms_contexts_filenames = [(t, find_substring_contexts(t, requests[i]), filenames[i]) for t in terms]
+        # [[('t1', [matches], 'f1'), ('t2', [matches], 'f1'), ..., [...]]
+        terms_contexts_filenames_lst.append(terms_contexts_filenames)
 
-    # Keep only unique terms and unique context (merge contexts)
-    terms_contexts_uniq = {}
-    for dict_elem in terms_contexts:
-        for term_context in dict_elem:  # terms and their contents
-            term = term_context['term']
-            contexts = term_context['contexts']
-            try:
-                terms_contexts_uniq[term].extend(contexts)
-            except KeyError:
-                terms_contexts_uniq[term] = contexts
+    # Keep only unique terms
+    terms_contexts_filenames_uniq = {}
+    for sub_list in terms_contexts_filenames_lst:
+        for term_context_filename in sub_list:  # terms and their contents
+            term = term_context_filename[0]
+            contexts = term_context_filename[1]
+            filename = term_context_filename[2]
+            if term in terms_contexts_filenames_uniq.keys():
+                if terms_contexts_filenames_uniq[term]['filename'] == filename:
+                    # only keep the term's contexts for the first source file
+                    # where the term is found
+                    terms_contexts_filenames_uniq[term]['contexts'].extend(contexts)
+            else:
+                terms_contexts_filenames_uniq[term] = {'contexts': contexts, 'filename': filename}
 
     # make contexts unique
-    for key in terms_contexts_uniq.keys():
-        terms_contexts_uniq[key] = list(set(terms_contexts_uniq[key]))
+    for term in terms_contexts_filenames_uniq.keys():
+        unique_contexts = list(set(terms_contexts_filenames_uniq[term]['contexts']))
+        terms_contexts_filenames_uniq[term]['contexts'] = unique_contexts
 
-    return terms_contexts_uniq
+    return terms_contexts_filenames_uniq
 
 
 def write_unique_terms_contexts(terms_contexts_uniq, filename):
@@ -117,7 +119,7 @@ if __name__ == '__main__':
 
 
     responses = read_responses(args.responses_filename)
-    requests = read_requests(args.requests_filename)
-    terms_contexts_uniq = get_unique_terms_context(requests, responses) 
+    requests, source_names = read_requests(args.requests_filename)
+    terms_contexts_uniq = get_unique_terms_context(requests, responses, source_names) 
     write_unique_terms_contexts(terms_contexts_uniq, args.terms_contexts_filename)
     

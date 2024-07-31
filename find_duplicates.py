@@ -205,7 +205,7 @@ def highlight_all_terms(results_vs_master, terms_contexts_uniq, num_contexts=5):
         idx = line.strip().split('\t')[0]
         term = line.strip().split('\t')[1]
         try:
-            contexts = terms_contexts_uniq[term]  # get contexts for term
+            contexts = terms_contexts_uniq[term]['contexts']  # get contexts for term
         except KeyError:
             continue
         new_line = f'{idx}\t{term}\t'
@@ -235,7 +235,7 @@ def add_header(results_vs_master):
         curr_length = len(terms)
         if curr_length > max_length:
             max_length = curr_length
-    header = 'idx\tterm'
+    header = 'idx\tterm\tsource_file'
     if max_length > 2:
         header += '\texisting_term_WBTerm\tsim_score'
     if max_length > 5:
@@ -243,6 +243,18 @@ def add_header(results_vs_master):
     header += '\n'
     results_vs_master.insert(0, header)
     return results_vs_master
+
+
+def add_sourcename(results_with_headers, terms_contexts_uniq):
+    results_with_sourcename = []
+    results_with_sourcename.append(results_with_headers[0])  # header
+    for line in results_with_headers[1:]:  # skip header
+       line = line.strip().split('\t')
+       term = line[1]
+       line.insert(2, terms_contexts_uniq[term]['filename'])
+       updated_line = '\t'.join(line) + '\n'
+       results_with_sourcename.append(updated_line)
+    return results_with_sourcename
 
 
 if __name__ == '__main__':
@@ -329,6 +341,10 @@ if __name__ == '__main__':
     for results in vs_master:
         results_with_headers.append(add_header(results))
 
+    results_with_sourcename = []
+    for results in results_with_headers:
+        results_with_sourcename.append(add_sourcename(results, terms_contexts_uniq))
+
 
     vs_master_paths_header = [
     'duplicates_99_percent.txt',
@@ -336,7 +352,7 @@ if __name__ == '__main__':
     'duplicates_80_percent.txt'
     ]
 
-    for file_name, results in zip(vs_master_paths_header, results_with_headers):
+    for file_name, results in zip(vs_master_paths_header, results_with_sourcename):
         with open(os.path.join(args.main_output_path, file_name), 'w', encoding='utf-8') as to_f:
             for line in results:
                 to_f.write(line)

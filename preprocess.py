@@ -1,6 +1,6 @@
 import argparse
 import json
-# import os
+import os
 
 
 def split_texts(texts, max_words=250):
@@ -31,12 +31,13 @@ def split_texts(texts, max_words=250):
 
     return subtexts
 
-def save_prompts(prompt_start, source_split, requests_filename):
-    prompts = [{'prompt': prompt_start, 'text': text} for text in source_split]
+
+def save_prompts(prompts_lst, requests_filename):
     with open(requests_filename, 'w', encoding='utf-8') as f:
-        for prompt in prompts:
+        for prompt in prompts_lst:
             json_string = json.dumps(prompt)
             f.write(json_string + '\n')
+
 
 def get_lines(source_filepath):
     source_list = []
@@ -50,6 +51,16 @@ def get_lines(source_filepath):
     return source_list
 
 
+def build_prompts(prompt_start, source_split, filename):
+    prompts = [
+        {   
+            'prompt': prompt_start, 
+            'text': text, 
+            'source': filename
+            } for text in source_split]
+    return prompts
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--source_filepath')
@@ -58,7 +69,13 @@ if __name__ == '__main__':
     parser.add_argument('--requests_filepath')
     args = parser.parse_args()
 
-
-    all_lines = get_lines(args.source_filepath)
-    source_split = split_texts(all_lines, args.max_words)
-    save_prompts(args.prompt_start, source_split, args.requests_filepath)
+    files_lst = os.listdir(args.source_filepath)
+    prompts_lst = []
+    for f in files_lst:
+        all_lines = get_lines(os.path.join(args.source_filepath, f))
+        source_split = split_texts(all_lines, args.max_words)
+        filename = os.path.basename(f)
+        prompts = build_prompts(args.prompt_start, source_split, f)
+        prompts_lst.extend(prompts)
+    
+    save_prompts(prompts_lst, args.requests_filepath)
