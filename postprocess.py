@@ -76,9 +76,10 @@ def get_unique_terms_context(requests, responses, filenames):
         terms = responses[i].split('\n')
         terms = [strip_punctuation(text) for text in terms]
         terms = [t for t in terms if t]
-        terms = list(set(terms))
-        terms = [t for t in terms if t.lower() in requests[i].lower()]
-        terms_contexts_filenames = [(t, find_substring_contexts(t, requests[i]), filenames[i]) for t in terms]
+        terms = list(dict.fromkeys(terms))
+        present_terms =[t for t in terms if t.lower() in requests[i].lower()]
+        cased_terms = [change_case(t, requests[i]) for t in present_terms]
+        terms_contexts_filenames = [(t, find_substring_contexts(t, requests[i]), filenames[i]) for t in cased_terms]
         # [[('t1', [matches], 'f1'), ('t2', [matches], 'f1'), ..., [...]]
         terms_contexts_filenames_lst.append(terms_contexts_filenames)
 
@@ -108,6 +109,14 @@ def get_unique_terms_context(requests, responses, filenames):
 def write_unique_terms_contexts(terms_contexts_uniq, filename):
     with open(filename, 'w', encoding='utf-8') as to_f:
         json.dump(terms_contexts_uniq, to_f)
+
+
+def change_case(term, context):
+    pattern = re.compile(re.escape(term), re.IGNORECASE)
+    matches = []
+    for m in pattern.finditer(context):
+        matches.append(context[m.start():m.end()])
+    return matches[-1]
 
 
 if __name__ == '__main__':
