@@ -116,6 +116,9 @@ def change_case(term, context):
     matches = []
     for m in pattern.finditer(context):
         matches.append(context[m.start():m.end()])
+    for match in matches:
+        if match.islower():
+            return match
     return matches[-1]
 
 
