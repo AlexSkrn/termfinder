@@ -35,7 +35,7 @@ def split_texts(texts, max_words=250):
 def save_prompts(prompts_lst, requests_filename):
     with open(requests_filename, 'w', encoding='utf-8') as f:
         for prompt in prompts_lst:
-            json_string = json.dumps(prompt)
+            json_string = json.dumps(prompt, ensure_ascii=False)
             f.write(json_string + '\n')
 
 
