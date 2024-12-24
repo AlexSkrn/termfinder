@@ -119,7 +119,7 @@ def get_new_terms_lower(internal_duplicates):
         new_terms_lower.append(terms_temp)
     return new_terms_lower
 
-def compute_cosine_similarity_in_chunks(tf_idf_matrix, old_tf_idf_matrix, chunk_size=30_000):
+def compute_cosine_similarity_in_chunks(tf_idf_matrix, old_tf_idf_matrix, chunk_size=10_000):
     n_chunks = old_tf_idf_matrix.shape[0] // chunk_size + 1
     cos_sim_table = np.zeros((tf_idf_matrix.shape[0], old_tf_idf_matrix.shape[0]))
 
